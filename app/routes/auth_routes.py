@@ -6,7 +6,7 @@ from datetime import timedelta
 
 auth = Blueprint('auth', __name__)
 
-# 🚀 Register
+# Register
 @auth.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -26,7 +26,7 @@ def register():
 
     return jsonify({'message': 'User registered successfully'}), 201
 
-# 🔐 Login
+# Login
 @auth.route('/login', methods=['POST'])
 def login():
     data = request.get_json()

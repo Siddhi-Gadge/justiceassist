@@ -14,7 +14,7 @@ def refine_extracted_text(text):
 
 
 def extract_phone_numbers(text):
-    # Indian phone numbers (simple format)
+    # phone numbers
     return re.findall(r'(?:(?:\+91[-\s]?)?|0)?[789]\d{9}', text)
 
 
@@ -27,7 +27,7 @@ def extract_upi_ids(text):
 
 
 def extract_dates(text):
-    # Finds date patterns like 02/08/2021 or 2 Aug 2021
+    # Finds date patterns
     date_patterns = re.findall(r'\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}', text)
     date_formats = []
     for d in date_patterns:
@@ -44,9 +44,8 @@ def extract_amounts(text):
 
 
 def extract_key_sentences(text):
-    # Example: pick sentences with "fraud", "scam", "lost"
     key_sentences = []
     for line in text.split("\n"):
         if any(keyword in line.lower() for keyword in ["fraud", "scam", "lost", "transaction", "complaint"]):
             key_sentences.append(line.strip())
-    return key_sentences[:5]  # Return top 5 relevant lines
+    return key_sentences[:5] 

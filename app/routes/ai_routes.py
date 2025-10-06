@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 import openai
+from app import db
 from werkzeug.utils import secure_filename
 from app.utils.suspect_utils import analyze_evidence
 
@@ -92,31 +94,66 @@ def get_guidance():
 @ai.route('/guess-suspect', methods=['POST'])
 @jwt_required()
 def guess_suspect():
-    # Accept both text evidence and file upload
-    description = request.form.get("description", "")
-    file = request.files.get("file")
+    user_id = get_jwt_identity()
+
+    data = request.form.to_dict() or {}
+    report_id = data.get("report_id")  # may be None
+    evidence_text = data.get("evidence_text", "")
+    evidence_file = request.files.get("evidence_file")
+
     file_path = None
 
-    if not description and not file:
+    if report_id:
+        # Fetch report from DB
+        report = Report.query.filter_by(id=report_id, user_id=user_id).first()
+        if not report:
+            return jsonify({"status": "error", "error": "Report not found"}), 404
+        evidence_text = report.evidence_text
+        file_path = getattr(report, "file_path", None)  # optional if stored in Report
+
+    elif evidence_file:
+        # Save uploaded file temporarily
+        os.makedirs("uploads", exist_ok=True)
+        file_path = f"uploads/{evidence_file.filename}"
+        evidence_file.save(file_path)
+
+    if not evidence_text and not file_path:
         return jsonify({
             "status": "error",
             "error": "Either text or file evidence is required"
         }), 400
 
-    # Save uploaded file temporarily
-    if file:
-        filename = secure_filename(file.filename)
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        file.save(file_path)
+    # Run forensic analysis
+    result = analyze_evidence(text=evidence_text, file_path=file_path)
 
-    # Run forensic analysis pipeline
-    result = analyze_evidence(description, file_path)
+    # Dashboard-friendly summary
+    dashboard_view = {
+        "suspect_profile": result.get("suspect_profile") or "Unknown",
+        "summary": result.get("summary", ""),
+        "artifacts": {
+            "emails": result.get("artifacts", {}).get("emails", []),
+            "urls": result.get("artifacts", {}).get("urls", []),
+            "ip_addresses": result.get("artifacts", {}).get("ips", []),
+        }
+    }
 
-    # Clean up uploaded file
-    if file_path and os.path.exists(file_path):
-        os.remove(file_path)
+    # Detailed view
+    detailed_view = {
+        "summary": result.get("summary", ""),
+        "suspect_profile": result.get("suspect_profile") or "Unknown",
+        "clues": result.get("clues", []),
+        "artifacts": result.get("artifacts", {}),
+        "tool_results": {
+            "whois": result.get("whois", {}),
+            "dns": result.get("dns", {}),
+            "ip_info": result.get("ip_info", {}),
+            "url_analysis": result.get("url_analysis", {}),
+            "file_metadata": result.get("file_metadata", {})
+        }
+    }
 
     return jsonify({
         "status": "success",
-        "analysis": result
+        "dashboard": dashboard_view,
+        "detailed": detailed_view
     }), 200
