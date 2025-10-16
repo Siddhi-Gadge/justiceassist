@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 import openai
 from app import db
+from app.models import Report
 from werkzeug.utils import secure_filename
 from app.utils.suspect_utils import analyze_evidence
 
@@ -108,13 +108,14 @@ def guess_suspect():
         report = Report.query.filter_by(id=report_id, user_id=user_id).first()
         if not report:
             return jsonify({"status": "error", "error": "Report not found"}), 404
-        evidence_text = report.evidence_text
-        file_path = getattr(report, "file_path", None)  # optional if stored in Report
+        evidence_text = report.description
+        file_path = report.evidence_file
 
     elif evidence_file:
         # Save uploaded file temporarily
         os.makedirs("uploads", exist_ok=True)
-        file_path = f"uploads/{evidence_file.filename}"
+        filename = secure_filename(evidence_file.filename)
+        file_path = os.path.join("uploads", filename)
         evidence_file.save(file_path)
 
     if not evidence_text and not file_path:
@@ -157,3 +158,5 @@ def guess_suspect():
         "dashboard": dashboard_view,
         "detailed": detailed_view
     }), 200
+
+

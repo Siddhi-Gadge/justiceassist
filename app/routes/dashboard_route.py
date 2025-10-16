@@ -16,19 +16,17 @@ def get_dashboard():
     category_counts = {}
 
     for r in reports:
-        # For SQLite, use get_json_field for JSON fields
-        suspect = r.suspect_guess
-        summary = r.get_json_field("clues") or []
+        forensic_summary = r.get_json_field("forensic_summary")
+        suspect = forensic_summary.get("suspect_profile") if forensic_summary else "Unknown"
+        summary = forensic_summary.get("summary") if forensic_summary else ""
 
         dashboard_reports.append({
             "report_id": r.id,
-            "title": r.title,
-            "incident_type": r.incident_type,
-            "date_of_incident": r.date_of_incident,
-            "location": r.location,
+            "description": r.description,
+            "incident_date": r.incident_date,
             "status": r.status,
             "suspect_guess": suspect,
-            "summary": summary[0] if summary else ""  # first clue as quick summary
+            "summary": summary
         })
 
         cat = suspect or "Unknown"

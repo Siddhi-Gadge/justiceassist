@@ -2,33 +2,31 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
-from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 import json
-from datetime import datetime
-import json
-from flask_sqlalchemy import SQLAlchemy
 
 
 class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(120), nullable=False)
-    incident_type = db.Column(db.String(100), nullable=False)
+    first_name = db.Column(db.String(100), nullable=True)
+    last_name = db.Column(db.String(100), nullable=True)
+    address = db.Column(db.String(200), nullable=True)
+    email = db.Column(db.String(100), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    state = db.Column(db.String(50), nullable=True)
+    city = db.Column(db.String(50), nullable=True)
+    complaint_category = db.Column(db.String(100), nullable=True)
+    incident_date = db.Column(db.String(50), nullable=True)
+    delay_in_reporting = db.Column(db.String(10), nullable=True)
+    platform = db.Column(db.String(100), nullable=True)
     description = db.Column(db.Text, nullable=False)
-    date_of_incident = db.Column(db.String(50), nullable=False)
-    location = db.Column(db.String(100), nullable=False)
-    evidence_text = db.Column(db.Text)
+    evidence_file = db.Column(db.String(200), nullable=True)
     status = db.Column(db.String(50), default='submitted')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     # -------- Forensic Fields --------
-    suspect_guess = db.Column(db.String(100), nullable=True)
-    clues = db.Column(db.Text, nullable=True)         # JSON stored as string
-    artifacts = db.Column(db.Text, nullable=True)     # JSON stored as string
-    file_metadata = db.Column(db.Text, nullable=True) # JSON stored as string
-    forensic_summary = db.Column(db.Text)   # dashboard-level summary (short JSON as string)
-    forensic_details = db.Column(db.Text) 
+    forensic_summary = db.Column(db.Text, nullable=True)   # dashboard-level summary (short JSON as string)
+    forensic_details = db.Column(db.Text, nullable=True)
 
     # JSON helpers for SQLite
     def set_json_field(self, field_name, data):
@@ -41,21 +39,24 @@ class Report(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "title": self.title,
-            "incident_type": self.incident_type,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "address": self.address,
+            "email": self.email,
+            "phone": self.phone,
+            "state": self.state,
+            "city": self.city,
+            "complaint_category": self.complaint_category,
+            "incident_date": self.incident_date,
+            "delay_in_reporting": self.delay_in_reporting,
+            "platform": self.platform,
             "description": self.description,
-            "date_of_incident": self.date_of_incident,
-            "location": self.location,
-            "evidence_text": self.evidence_text,
+            "evidence_file": self.evidence_file,
             "status": self.status,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
             "user_id": self.user_id,
-            "suspect_guess": self.suspect_guess,
-            "clues": self.get_json_field("clues"),
-            "artifacts": self.get_json_field("artifacts"),
-            "file_metadata": self.get_json_field("file_metadata"),
-            "forensic_summary": json.loads(self.forensic_summary) if self.forensic_summary else None,
-            "forensic_details": json.loads(self.forensic_details) if self.forensic_details else None
+            "forensic_summary": self.get_json_field("forensic_summary"),
+            "forensic_details": self.get_json_field("forensic_details")
         }
 
 
